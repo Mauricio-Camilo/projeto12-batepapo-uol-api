@@ -34,13 +34,13 @@ app.post("/participants", (req, res) => {
         lastStatus: Date.now()
     }
     res.sendStatus(201);
-    // const promise2 = database.collection("usuarios").insertOne(login);
-    // promise2.then(confirmação => {
-    //     console.log("deu bom");
-    //     res.sendStatus(201);
-    // })
-    // promise2.catch(e => {console.log(chalk.bold.red("Deu ruim para fazer login"), e);
-    // res.status(500).send("Não rolou a inserção no db")})
+    const promise2 = database.collection("usuarios").insertOne(login);
+    promise2.then(confirmação => {
+        console.log("deu bom");
+        res.sendStatus(201);
+    })
+    promise2.catch(e => {console.log(chalk.bold.red("Deu ruim para inserir login"), e);
+    res.status(500).send("Não rolou a inserção no db")})
 });
 
 app.listen(5000, () => {
