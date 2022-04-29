@@ -21,7 +21,7 @@ const promise = mongoClient.connect();
     })
     promise.catch(e => console.log(chalk.bold.red("Deu ruim"), e));
 
-app.post("/participants", (req, res) => {
+app.post("/participants", async (req, res) => {
     let { name } = req.body;
     console.log(name);
     if (!name) {
@@ -33,15 +33,33 @@ app.post("/participants", (req, res) => {
         name: name,
         lastStatus: Date.now()
     }
-    res.sendStatus(201);
-    const promise2 = database.collection("usuarios").insertOne(login);
-    promise2.then(confirmação => {
-        console.log("deu bom");
+    
+    const usuario = {
+        from: name,  
+        to: 'Todos', 
+        text: 'entra na sala...', 
+        type: 'status', 
+        time: dayjs().format('hh:mm:ss')
+    } 
+
+    try {
+        await database.collection("usuarios").insertOne(login);
+        console.log(chalk.bold.green("Login salvo no banco"));
         res.sendStatus(201);
-    })
-    promise2.catch(e => {console.log(chalk.bold.red("Deu ruim para inserir login"), e);
-    res.status(500).send("Não rolou a inserção no db")})
+
+        await database.collection("espera").insertOne(usuario);
+        console.log(chalk.bold.green("Usuario salvo no banco"));
+        res.sendStatus(201);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Não rolou a inserção no db"))
+      }
 });
+
+
+
+
 
 app.listen(5000, () => {
     console.log(chalk.bold.blue("Servidor vivo na porta 5000"));
