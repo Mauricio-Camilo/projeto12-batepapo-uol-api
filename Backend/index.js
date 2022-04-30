@@ -52,11 +52,13 @@ app.post("/participants", async (req, res) => {
         // database = mongoClient.db("test");
         // console.log(chalk.bold.green("Banco de dados conectado, show!!"))
 
-        // await database.collection("usuarios").insertOne(login);
-        // console.log(chalk.bold.green("Login salvo no banco"));
+        // trocar as coleções depois para participantes e mensagens
 
-        // await database.collection("espera").insertOne(usuario);
-        // console.log(chalk.bold.green("Usuario salvo no banco"));
+        await database.collection("participantesTeste").insertOne(login);
+        console.log(chalk.bold.green("Login salvo no banco"));
+
+        await database.collection("mensagensTeste").insertOne(usuario);
+        console.log(chalk.bold.green("Usuario salvo no banco"));
 
         mostrarMensagens();
         mostrarParticipantes();
@@ -80,7 +82,7 @@ app.post("/messages", async (req, res) => {
         time: dayjs().format('hh:mm:ss')
     }
     try {
-        await database.collection("mensagens").insertOne(mensagem);
+        await database.collection("mensagensTeste").insertOne(mensagem);
         console.log(chalk.bold.green("Mensagem salva no banco"));
         res.sendStatus(201);
     }
@@ -96,11 +98,11 @@ function mostrarMensagens() {
         const { limit } = req.query;
         let mensagens = 0;
         try {
-            const participantes = await database.collection("espera").find().toArray();
+            const participantes = await database.collection("mensagensTeste").find().toArray();
             console.log(chalk.bold.green("Mensagens obtidas do servidor"));
             if (limit !== "")  mensagens = participantes.reverse().slice(0,limit);
             else  mensagens = participantes;
-            res.send(mensagens);
+            res.send(mensagens.reverse());
             return;
         }
         catch (error) {
@@ -115,7 +117,7 @@ function mostrarParticipantes() {
         const { user: nome } = req.headers;
         console.log("Nome do header do participante: ", chalk.red.bold(nome));
         try {
-            const participantes = await database.collection("espera").find().toArray();
+            const participantes = await database.collection("participantesTeste").find().toArray();
             console.log(chalk.bold.green("Participantes obtidos do servidor"));
             res.send(participantes);
         }
@@ -138,6 +140,22 @@ app.delete("/messages/:id", async (req, res) => {
     }
 })
 
+app.post("/status", async (req,res) => {
+    const { user: nome } = req.headers;
+    const validação = await database.collection("participantesTeste").findOne({name: nome})
+    if (validação) {
+        console.log(chalk.bold.green("Deu bom"));
+        await database.collection("participantesTeste").
+        updateOne({name: nome}, {$set:{lastStatus:Date.now()}});
+        res.sendStatus(200);
+        return;
+    }
+    else {  
+        console.log(chalk.bold.red("Deu ruim"));
+        res.sendStatus(404);
+        return;
+    }
+})
 
 app.delete("/participants/:id", async (req, res) => {
     const { id } = req.params;
