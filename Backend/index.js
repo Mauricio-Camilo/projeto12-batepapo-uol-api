@@ -52,11 +52,11 @@ app.post("/participants", async (req, res) => {
         // database = mongoClient.db("test");
         // console.log(chalk.bold.green("Banco de dados conectado, show!!"))
 
-        await database.collection("usuarios").insertOne(login);
-        console.log(chalk.bold.green("Login salvo no banco"));
+        // await database.collection("usuarios").insertOne(login);
+        // console.log(chalk.bold.green("Login salvo no banco"));
 
-        await database.collection("espera").insertOne(usuario);
-        console.log(chalk.bold.green("Usuario salvo no banco"));
+        // await database.collection("espera").insertOne(usuario);
+        // console.log(chalk.bold.green("Usuario salvo no banco"));
 
         mostrarMensagens();
         mostrarParticipantes();
@@ -70,7 +70,7 @@ app.post("/participants", async (req, res) => {
 });
 
 app.post("/messages", async (req, res) => {
-    const {to, text, type} = req.body;
+    const { to, text, type } = req.body;
     const { user: nome } = req.headers;
     const mensagem = {
         from: nome,
@@ -93,11 +93,15 @@ app.post("/messages", async (req, res) => {
 function mostrarMensagens() {
     app.get("/messages", async (req, res) => {
         const { user: nome } = req.headers;
-        console.log("Nome do header da mensagem: ", chalk.blue.bold(nome));
+        const { limit } = req.query;
+        let mensagens = 0;
         try {
             const participantes = await database.collection("espera").find().toArray();
             console.log(chalk.bold.green("Mensagens obtidas do servidor"));
-            res.send(participantes);
+            if (limit !== "")  mensagens = participantes.reverse().slice(0,limit);
+            else  mensagens = participantes;
+            res.send(mensagens);
+            return;
         }
         catch (error) {
             console.error(error);
@@ -123,9 +127,9 @@ function mostrarParticipantes() {
 }
 
 app.delete("/messages/:id", async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
-        await database.collection("mensagens").deleteOne({_id: new ObjectId(id)})
+        await database.collection("mensagens").deleteOne({ _id: new ObjectId(id) })
         res.sendStatus(200);
     }
     catch (error) {
@@ -136,9 +140,9 @@ app.delete("/messages/:id", async (req, res) => {
 
 
 app.delete("/participants/:id", async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
-        await database.collection("espera").deleteOne({_id: new ObjectId(id)})
+        await database.collection("espera").deleteOne({ _id: new ObjectId(id) })
         res.sendStatus(200);
     }
     catch (error) {
