@@ -95,7 +95,7 @@ function mostrarMensagens() {
         const { user: nome } = req.headers;
         console.log("Nome do header da mensagem: ", chalk.blue.bold(nome));
         try {
-            const participantes = await database.collection("mensagens").find().toArray();
+            const participantes = await database.collection("espera").find().toArray();
             console.log(chalk.bold.green("Mensagens obtidas do servidor"));
             res.send(participantes);
         }
@@ -122,6 +122,19 @@ function mostrarParticipantes() {
     })
 }
 
+app.delete("/messages/:id", async (req, res) => {
+    const {id} = req.params;
+    try {
+        await database.collection("mensagens").deleteOne({_id: new ObjectId(id)})
+        res.sendStatus(200);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha na remoção do participante"))
+    }
+})
+
+
 app.delete("/participants/:id", async (req, res) => {
     const {id} = req.params;
     try {
@@ -133,41 +146,6 @@ app.delete("/participants/:id", async (req, res) => {
         res.status(500).send(chalk.red.bold("Falha na remoção do participante"))
     }
 })
-
-// app.post("/messages", async (req,res) => {
-//     const {to, text, type} = req.body;
-//     console.log(req.body);
-// })
-
-
-// app.post("/messages", async (req, res) => {
-//     const nome = req.headers;
-//     console.log(chalk.red.bold(nome));
-// let { name } = req.body;
-// console.log(name);
-// if (!name) {
-//     console.log(chalk.bold.red("Nome não enviado"));
-//     res.status(422).send("Todos os campos são obrigatórios");
-//     return;
-// }
-
-// const mensagem = {
-// from: nome.User, 
-// to: 'Todos', 
-// text: 'oi galera', 
-// type: 'message', 
-// time: dayjs().format('hh:mm:ss')}
-
-// try {
-//     await database.collection("mensagens").insertOne(mensagem);
-//     console.log(chalk.bold.green("Mensagem salva no banco"));
-//     res.sendStatus(201);
-// }
-// catch (error) {
-//     console.error(error);
-//     res.status(500).send(chalk.red.bold("Não rolou guardar a mensagem no servidor"))
-//   }
-// });
 
 app.listen(5000, () => {
     console.log(chalk.bold.blue("Servidor vivo na porta 5000"));
