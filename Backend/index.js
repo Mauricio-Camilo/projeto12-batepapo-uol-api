@@ -1,29 +1,32 @@
 import express, { json } from "express";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import chalk from "chalk";
 import cors from "cors";
+import Joi from "joi";
 import dayjs from "dayjs";
 
 const app = express();
 app.use(cors());
 app.use(json());
 
-const participantes = [];
-
-const mensagens = [];
 
 let database = null;
 const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 const promise = mongoClient.connect();
-    promise.then(() => {
-        database = mongoClient.db("test");
-        console.log(chalk.bold.green("Banco de dados conectado, show!!"))
-    })
-    promise.catch(e => console.log(chalk.bold.red("Deu ruim"), e));
+promise.then(() => {
+    database = mongoClient.db("test");
+    console.log(chalk.bold.green("Banco de dados conectado, show!!"))
+})
+promise.catch(e => console.log(chalk.bold.red("Deu ruim"), e));
 
 app.post("/participants", async (req, res) => {
     let { name } = req.body;
-    console.log(name);
+
+    // const userSchema = joi.object({
+    //     name: joi.string().required
+    // })
+
+
     if (!name) {
         console.log(chalk.bold.red("Nome não enviado"));
         res.status(422).send("Todos os campos são obrigatórios");
@@ -33,33 +36,138 @@ app.post("/participants", async (req, res) => {
         name: name,
         lastStatus: Date.now()
     }
-    
+
     const usuario = {
-        from: name,  
-        to: 'Todos', 
-        text: 'entra na sala...', 
-        type: 'status', 
+        from: name,
+        to: 'Todos',
+        text: 'entra na sala...',
+        type: 'status',
         time: dayjs().format('hh:mm:ss')
-    } 
+    }
 
     try {
+
+        // Posso conectar com o banco de dados depois de digitar o nome do usuário
+        // await mongoClient.connect();
+        // database = mongoClient.db("test");
+        // console.log(chalk.bold.green("Banco de dados conectado, show!!"))
+
         await database.collection("usuarios").insertOne(login);
         console.log(chalk.bold.green("Login salvo no banco"));
-        res.sendStatus(201);
 
         await database.collection("espera").insertOne(usuario);
         console.log(chalk.bold.green("Usuario salvo no banco"));
-        res.sendStatus(201);
+
+        mostrarMensagens();
+        mostrarParticipantes();
     }
     catch (error) {
         console.error(error);
         res.status(500).send(chalk.red.bold("Não rolou a inserção no db"))
-      }
+        return;
+    }
+    res.sendStatus(201);
 });
 
+app.post("/messages", async (req, res) => {
+    const {to, text, type} = req.body;
+    const { user: nome } = req.headers;
+    const mensagem = {
+        from: nome,
+        to: to,
+        text: text,
+        type: type,
+        time: dayjs().format('hh:mm:ss')
+    }
+    try {
+        await database.collection("mensagens").insertOne(mensagem);
+        console.log(chalk.bold.green("Mensagem salva no banco"));
+        res.sendStatus(201);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha no envio das mensagens"))
+    }
+})
+
+function mostrarMensagens() {
+    app.get("/messages", async (req, res) => {
+        const { user: nome } = req.headers;
+        console.log("Nome do header da mensagem: ", chalk.blue.bold(nome));
+        try {
+            const participantes = await database.collection("mensagens").find().toArray();
+            console.log(chalk.bold.green("Mensagens obtidas do servidor"));
+            res.send(participantes);
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).send(chalk.red.bold("Falha na obtenção das mensagens"))
+        }
+    })
+}
+
+function mostrarParticipantes() {
+    app.get("/participants", async (req, res) => {
+        const { user: nome } = req.headers;
+        console.log("Nome do header do participante: ", chalk.red.bold(nome));
+        try {
+            const participantes = await database.collection("espera").find().toArray();
+            console.log(chalk.bold.green("Participantes obtidos do servidor"));
+            res.send(participantes);
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
+        }
+    })
+}
+
+app.delete("/participants/:id", async (req, res) => {
+    const {id} = req.params;
+    try {
+        await database.collection("espera").deleteOne({_id: new ObjectId(id)})
+        res.sendStatus(200);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha na remoção do participante"))
+    }
+})
+
+// app.post("/messages", async (req,res) => {
+//     const {to, text, type} = req.body;
+//     console.log(req.body);
+// })
 
 
+// app.post("/messages", async (req, res) => {
+//     const nome = req.headers;
+//     console.log(chalk.red.bold(nome));
+// let { name } = req.body;
+// console.log(name);
+// if (!name) {
+//     console.log(chalk.bold.red("Nome não enviado"));
+//     res.status(422).send("Todos os campos são obrigatórios");
+//     return;
+// }
 
+// const mensagem = {
+// from: nome.User, 
+// to: 'Todos', 
+// text: 'oi galera', 
+// type: 'message', 
+// time: dayjs().format('hh:mm:ss')}
+
+// try {
+//     await database.collection("mensagens").insertOne(mensagem);
+//     console.log(chalk.bold.green("Mensagem salva no banco"));
+//     res.sendStatus(201);
+// }
+// catch (error) {
+//     console.error(error);
+//     res.status(500).send(chalk.red.bold("Não rolou guardar a mensagem no servidor"))
+//   }
+// });
 
 app.listen(5000, () => {
     console.log(chalk.bold.blue("Servidor vivo na porta 5000"));
