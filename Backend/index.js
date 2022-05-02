@@ -9,15 +9,14 @@ const app = express();
 app.use(cors());
 app.use(json());
 
-
 let database = null;
 const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
-const promise = mongoClient.connect();
-promise.then(() => {
-    database = mongoClient.db("test");
-    console.log(chalk.bold.green("Banco de dados conectado, show!!"))
-})
-promise.catch(e => console.log(chalk.bold.red("Deu ruim"), e));
+// const promise = mongoClient.connect();
+// promise.then(() => {
+//     database = mongoClient.db("test");
+//     console.log(chalk.bold.green("Banco de dados conectado, show!!"))
+// })
+// promise.catch(e => console.log(chalk.bold.red("Deu ruim"), e));
 
 app.post("/participants", async (req, res) => {
     let { name } = req.body;
@@ -48,9 +47,9 @@ app.post("/participants", async (req, res) => {
     try {
 
         // Posso conectar com o banco de dados depois de digitar o nome do usuário
-        // await mongoClient.connect();
-        // database = mongoClient.db("test");
-        // console.log(chalk.bold.green("Banco de dados conectado, show!!"))
+        await mongoClient.connect();
+        database = mongoClient.db("test");
+        console.log(chalk.bold.green("Banco de dados conectado, show!!"))
 
         // trocar as coleções depois para participantes e mensagens
 
@@ -62,6 +61,8 @@ app.post("/participants", async (req, res) => {
 
         mostrarMensagens();
         mostrarParticipantes();
+        setInterval(() => procurarUsuarioInativo(), 5000);
+
     }
     catch (error) {
         console.error(error);
@@ -100,8 +101,8 @@ function mostrarMensagens() {
         try {
             const participantes = await database.collection("mensagensTeste").find().toArray();
             console.log(chalk.bold.green("Mensagens obtidas do servidor"));
-            if (limit !== "")  mensagens = participantes.reverse().slice(0,limit);
-            else  mensagens = participantes;
+            if (limit !== "") mensagens = participantes.reverse().slice(0, limit);
+            else mensagens = participantes;
             res.send(mensagens.reverse());
             return;
         }
@@ -140,17 +141,17 @@ app.delete("/messages/:id", async (req, res) => {
     }
 })
 
-app.post("/status", async (req,res) => {
+app.post("/status", async (req, res) => {
     const { user: nome } = req.headers;
-    const validação = await database.collection("participantesTeste").findOne({name: nome})
+    const validação = await database.collection("participantesTeste").findOne({ name: nome })
     if (validação) {
         console.log(chalk.bold.green("Deu bom"));
         await database.collection("participantesTeste").
-        updateOne({name: nome}, {$set:{lastStatus:Date.now()}});
+            updateOne({ name: nome }, { $set: { lastStatus: Date.now() } });
         res.sendStatus(200);
         return;
     }
-    else {  
+    else {
         console.log(chalk.bold.red("Deu ruim"));
         res.sendStatus(404);
         return;
@@ -169,14 +170,40 @@ app.delete("/participants/:id", async (req, res) => {
     }
 })
 
+async function procurarUsuarioInativo() {
+    try {
+        const participantes = await database.collection("participantesTeste").find().toArray();
+        console.log(participantes)
+        console.log("Pula uma linha");
+        const participantesInativos = participantes.filter(participante => {
+            return ((Date.now() / 1000) - (participante.lastStatus / 1000) > 10)
+        })
+        removerUsuarioInativo(participantesInativos);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
+    }
+}
+
+async function removerUsuarioInativo (participantesInativos) {
+    console.log(participantesInativos);
+    participantesInativos.forEach(participante => {
+        const teste = new ObjectId(participante._id);
+        console.log(teste);
+    })
+    try{
+        participantesInativos.forEach(participante => {
+        database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
+        })
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
+    }
+}
+
 app.listen(5000, () => {
     console.log(chalk.bold.blue("Servidor vivo na porta 5000"));
 })
 
-
-// Gerar horário atual
-// const data = dayjs().format('hh:mm:ss') 
-// console.log(data);
-
-// const agora = Date.now();
-// console.log(agora);
