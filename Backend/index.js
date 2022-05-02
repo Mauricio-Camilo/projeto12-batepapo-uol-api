@@ -97,6 +97,7 @@ function mostrarMensagens() {
     app.get("/messages", async (req, res) => {
         const { user: nome } = req.headers;
         const { limit } = req.query;
+        console.log(chalk.bold.red(limit));
         let mensagens = 0;
         try {
             const participantes = await database.collection("mensagensTeste").find().toArray();
@@ -173,8 +174,8 @@ app.delete("/participants/:id", async (req, res) => {
 async function procurarUsuarioInativo() {
     try {
         const participantes = await database.collection("participantesTeste").find().toArray();
-        console.log(participantes)
-        console.log("Pula uma linha");
+        // console.log(participantes)
+        // console.log("Pula uma linha");
         const participantesInativos = participantes.filter(participante => {
             return ((Date.now() / 1000) - (participante.lastStatus / 1000) > 10)
         })
@@ -188,13 +189,17 @@ async function procurarUsuarioInativo() {
 
 async function removerUsuarioInativo (participantesInativos) {
     console.log(participantesInativos);
-    participantesInativos.forEach(participante => {
-        const teste = new ObjectId(participante._id);
-        console.log(teste);
-    })
     try{
-        participantesInativos.forEach(participante => {
+        await participantesInativos.forEach(participante => {
+            const mensagem = {
+                from: participante.name,
+                to: "Todos",
+                text: "sai da sala...",
+                type: "status",
+                time: dayjs().format('hh:mm:ss')
+            }
         database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
+        database.collection("mensagensTeste").insertOne(mensagem);
         })
     }
     catch (error) {
