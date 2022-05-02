@@ -22,14 +22,14 @@ const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 
 app.post("/participants", async (req, res) => {
     let { name } = req.body;
-    
+    console.log(chalk.red.bold(name));
     const validação = userSchema.validate(name);
-    console.log(validação);
+    // console.log(validação);
     if (validação.error) {
         res.status(422).send("Todos os campos são obrigatórios");
         return;
     }
-  
+   
     const login = {
         name: name,
         lastStatus: Date.now()
@@ -49,6 +49,15 @@ app.post("/participants", async (req, res) => {
         await mongoClient.connect();
         database = mongoClient.db("test");
         console.log(chalk.bold.green("Banco de dados conectado, show!!"))
+
+        const verificaNome = await database.collection("participantesTeste").findOne({name: name})
+        console.log("teste: ",verificaNome);
+        if (verificaNome) {
+            res.status(409).send("Nome já existente");
+            mongoClient.close();
+            return;
+        }
+       
 
         // trocar as coleções depois para participantes e mensagens
 
@@ -187,25 +196,26 @@ async function procurarUsuarioInativo() {
 }
 
 async function removerUsuarioInativo (participantesInativos) {
-    console.log(participantesInativos);
-    try{
-        // Testar depois sem esse await
-        await participantesInativos.forEach(participante => {
-            const mensagem = {
-                from: participante.name,
-                to: "Todos",
-                text: "sai da sala...",
-                type: "status",
-                time: dayjs().format('hh:mm:ss')
-            }
-         database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
-         database.collection("mensagensTeste").insertOne(mensagem);
-        })
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
-    }
+    console.log("Entrou na função")
+    // console.log(participantesInativos);
+    // try{
+    //     // Testar depois sem esse await
+    //     await participantesInativos.forEach(participante => {
+    //         const mensagem = {
+    //             from: participante.name,
+    //             to: "Todos",
+    //             text: "sai da sala...",
+    //             type: "status",
+    //             time: dayjs().format('hh:mm:ss')
+    //         }
+    //      database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
+    //      database.collection("mensagensTeste").insertOne(mensagem);
+    //     })
+    // }
+    // catch (error) {
+    //     console.error(error);
+    //     res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
+    // }
 }
 
 app.listen(5000, () => {
