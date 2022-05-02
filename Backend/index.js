@@ -11,6 +11,14 @@ app.use(json());
 
 const userSchema = Joi.string().required();
 
+const messageSchema = Joi.object({
+    from: Joi.string(),
+    to: Joi.string().required(),
+    text: Joi.string().required(),
+    type: Joi.allow("message","private_message"),
+    time: Joi.any()
+})
+
 let database = null;
 const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 // const promise = mongoClient.connect();
@@ -83,6 +91,7 @@ app.post("/participants", async (req, res) => {
 app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body;
     const { user: nome } = req.headers;
+
     const mensagem = {
         from: nome,
         to: to,
@@ -90,6 +99,14 @@ app.post("/messages", async (req, res) => {
         type: type,
         time: dayjs().format('hh:mm:ss')
     }
+
+    const validação = messageSchema.validate(mensagem);
+    console.log(validação);
+    if (validação.error) {
+        res.status(422).send("Deu ruim pra enviar a mensagem");
+        return;
+    }
+
     try {
         await database.collection("mensagensTeste").insertOne(mensagem);
         console.log(chalk.bold.green("Mensagem salva no banco"));
