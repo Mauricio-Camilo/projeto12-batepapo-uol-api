@@ -2,8 +2,13 @@ import express, { json } from "express";
 import { MongoClient, ObjectId } from "mongodb";
 import chalk from "chalk";
 import cors from "cors";
+import dotenv from "dotenv";
 import Joi from "joi";
 import dayjs from "dayjs";
+
+dotenv.config();
+
+console.log(process.env.MONGO_URL)
 
 const app = express();
 app.use(cors());
@@ -15,12 +20,12 @@ const messageSchema = Joi.object({
     from: Joi.string(),
     to: Joi.string().required(),
     text: Joi.string().required(),
-    type: Joi.allow("message","private_message"),
+    type: Joi.valid("message","private_message"),
     time: Joi.any()
 })
 
 let database = null;
-const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
+const mongoClient = new MongoClient(process.env.MONGO_URL);
 // const promise = mongoClient.connect();
 // promise.then(() => {
 //     database = mongoClient.db("test");
@@ -214,25 +219,25 @@ async function procurarUsuarioInativo() {
 
 async function removerUsuarioInativo (participantesInativos) {
     console.log("Entrou na função")
-    // console.log(participantesInativos);
-    // try{
-    //     // Testar depois sem esse await
-    //     await participantesInativos.forEach(participante => {
-    //         const mensagem = {
-    //             from: participante.name,
-    //             to: "Todos",
-    //             text: "sai da sala...",
-    //             type: "status",
-    //             time: dayjs().format('hh:mm:ss')
-    //         }
-    //      database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
-    //      database.collection("mensagensTeste").insertOne(mensagem);
-    //     })
-    // }
-    // catch (error) {
-    //     console.error(error);
-    //     res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
-    // }
+    console.log(participantesInativos);
+    try{
+        // Testar depois sem esse await
+        await participantesInativos.forEach(participante => {
+            const mensagem = {
+                from: participante.name,
+                to: "Todos",
+                text: "sai da sala...",
+                type: "status",
+                time: dayjs().format('hh:mm:ss')
+            }
+         database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
+         database.collection("mensagensTeste").insertOne(mensagem);
+        })
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).send(chalk.red.bold("Falha na obtenção dos participantes"))
+    }
 }
 
 app.listen(5000, () => {
