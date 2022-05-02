@@ -9,6 +9,8 @@ const app = express();
 app.use(cors());
 app.use(json());
 
+const userSchema = Joi.string().required();
+
 let database = null;
 const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 // const promise = mongoClient.connect();
@@ -20,17 +22,14 @@ const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 
 app.post("/participants", async (req, res) => {
     let { name } = req.body;
-
-    // const userSchema = joi.object({
-    //     name: joi.string().required
-    // })
-
-
-    if (!name) {
-        console.log(chalk.bold.red("Nome não enviado"));
+    
+    const validação = userSchema.validate(name);
+    console.log(validação);
+    if (validação.error) {
         res.status(422).send("Todos os campos são obrigatórios");
         return;
     }
+  
     const login = {
         name: name,
         lastStatus: Date.now()
@@ -190,6 +189,7 @@ async function procurarUsuarioInativo() {
 async function removerUsuarioInativo (participantesInativos) {
     console.log(participantesInativos);
     try{
+        // Testar depois sem esse await
         await participantesInativos.forEach(participante => {
             const mensagem = {
                 from: participante.name,
@@ -198,8 +198,8 @@ async function removerUsuarioInativo (participantesInativos) {
                 type: "status",
                 time: dayjs().format('hh:mm:ss')
             }
-        database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
-        database.collection("mensagensTeste").insertOne(mensagem);
+         database.collection("participantesTeste").deleteOne({ _id: new ObjectId(participante._id) })
+         database.collection("mensagensTeste").insertOne(mensagem);
         })
     }
     catch (error) {
