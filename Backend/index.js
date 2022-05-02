@@ -162,9 +162,17 @@ function mostrarParticipantes() {
 
 app.delete("/messages/:id", async (req, res) => {
     const { id } = req.params;
+    const { user: nome } = req.headers;
     try {
-        await database.collection("mensagens").deleteOne({ _id: new ObjectId(id) })
+        const procuraMensagem = await database.collection("mensagensTeste").findOne({ _id: new ObjectId(id) })
+        if (!procuraMensagem) {
+            res.status(404).send("Mensagem não encontrada");
+            return;
+        }
+        else {
+        await database.collection("mensagensTeste").deleteOne({ _id: new ObjectId(id) })
         res.sendStatus(200);
+        }
     }
     catch (error) {
         console.error(error);
