@@ -1,6 +1,6 @@
 # Batepapo-uol-api
 
-A backend application focused on building an API to be used in the most famous chat used in uol.
+A backend application focused on building an API to be used in the most famous chat created by uol.
 
 ## About
 
