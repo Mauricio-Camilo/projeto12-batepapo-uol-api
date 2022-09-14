@@ -38,3 +38,4 @@ MONGO_URL=mongodb://127.0.0.1:27017
 ```bash
 node index.js
 ```
+6. Open the front-end using Live-Server
